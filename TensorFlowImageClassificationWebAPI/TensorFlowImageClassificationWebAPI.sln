@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2048
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorFlowImageClassificationWebAPI", "TensorFlowImageClassificationWebAPI\TensorFlowImageClassificationWebAPI.csproj", "{01FDCA9B-2C1F-4C1F-B7C9-D6F49065EEA2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{01FDCA9B-2C1F-4C1F-B7C9-D6F49065EEA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01FDCA9B-2C1F-4C1F-B7C9-D6F49065EEA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01FDCA9B-2C1F-4C1F-B7C9-D6F49065EEA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01FDCA9B-2C1F-4C1F-B7C9-D6F49065EEA2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6F4CBF1D-464D-4F31-942B-5F3F8117275E}
+	EndGlobalSection
+EndGlobal
