@@ -12,5 +12,7 @@ namespace TensorFlowImageClassificationWebAPI.ImageDataStructures
 
         public string PredictedLabel;
         public float Probability { get; set; }
+
+        public long PredictionExecutionTime;
     }
 }

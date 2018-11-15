@@ -22,7 +22,7 @@ namespace TensorFlowImageClassificationWebAPI.Infrastructure
             unknown
         }
 
-        private static ImageFormat GetImageFormat(byte[] bytes)
+        public static ImageFormat GetImageFormat(byte[] bytes)
         {
             // see http://www.mikekunz.com/image_file_header.html  
             var bmp = Encoding.ASCII.GetBytes("BM");     // BMP

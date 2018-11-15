@@ -9,6 +9,7 @@ namespace TensorFlowImageClassificationWebAPI.ImageDataStructures
 {
     public class ImageInputData
     {
-        public Bitmap Image;
+        public string ImagePath;
+        //public Bitmap Image;
     }
 }

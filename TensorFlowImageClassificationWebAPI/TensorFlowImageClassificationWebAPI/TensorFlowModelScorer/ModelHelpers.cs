@@ -9,7 +9,7 @@ namespace TensorFlowImageClassificationWebAPI.TensorFlowModelScorer
     {
         static FileInfo _dataRoot = new FileInfo(typeof(Program).Assembly.Location);
 
-        public static string GetAssetsPath(params string[] paths)
+        public static string GetFolderFullPath(params string[] paths)
         {
             if (paths == null || paths.Length == 0)
                 return null;

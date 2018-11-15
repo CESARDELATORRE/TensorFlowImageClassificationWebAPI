@@ -5,7 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Infrastructure\" />
     <Folder Include="ImageDataStructures\" />
     <Folder Include="wwwroot\" />
   </ItemGroup>
@@ -20,6 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="ImagesTemp\Readme.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="TensorFlowModel\labels.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
