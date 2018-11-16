@@ -53,6 +53,9 @@ namespace TensorFlowImageClassificationWebAPI
             // You will benefit only in the cases where you do multiple predictions within the same Http request.
             //
             //services.AddScoped<ITFModelScorer, TFModelScorer>();
+
+            // For further info on DI/IoC service lifetimes check this out:
+            // https://blogs.msdn.microsoft.com/cesardelatorre/2017/01/26/comparing-asp-net-core-ioc-service-life-times-and-autofac-ioc-instance-scopes/
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
