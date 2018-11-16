@@ -19,7 +19,7 @@ namespace TensorFlowImageClassificationWebAPI.TensorFlowModelScorer
     ///
     public interface ITFModelScorer
     {
-        PredictionFunction<ImageInputData, ImageNetPrediction> CreatePredictionFunction();
+        PredictionFunction<ImageInputData, ImageLabelPredictions> CreatePredictionFunction();
         ImagePredictedLabelWithProbability PredictLabelForImage(byte[] imageData, string imageFilePath);
     }
 
@@ -35,8 +35,8 @@ namespace TensorFlowImageClassificationWebAPI.TensorFlowModelScorer
         private readonly MLContext _mlContext;
 
         #pragma warning disable IDE0032
-        private readonly PredictionFunction<ImageInputData, ImageNetPrediction> _predictionFunction;
-        public PredictionFunction<ImageInputData, ImageNetPrediction> PredictionFunction
+        private readonly PredictionFunction<ImageInputData, ImageLabelPredictions> _predictionFunction;
+        public PredictionFunction<ImageInputData, ImageLabelPredictions> PredictionFunction
         {
             get => _predictionFunction;
         }
@@ -52,7 +52,13 @@ namespace TensorFlowImageClassificationWebAPI.TensorFlowModelScorer
 
             _mlContext = new MLContext(seed: 1);  //Setting seed so predictions are deterministic
 
-            //Create the prediction function in the constructor, once, as it is an expensive operation
+            // Create the prediction function in the constructor, once, as it is an expensive operation
+            // Note that, on average, this call takes around 200x longer than one prediction, so you want to cache it
+            // and reuse the prediction function, instead of creating one per prediction.
+            // IMPORTANT: Remember that the 'Predict()' method is not reentrant. 
+            // If you want to use multiple threads for simultaneous prediction, 
+            // make sure each thread is using its own PredictionFunction (e.g. In DI/IoC use .AddScoped())
+            // or use a critical section when using the Predict() method.
             _predictionFunction = this.CreatePredictionFunction();
         }
 
@@ -76,14 +82,14 @@ namespace TensorFlowImageClassificationWebAPI.TensorFlowModelScorer
             public const string outputTensorName = "loss";
         }
 
-        public ImagePredictedLabelWithProbability PredictLabelForImage(byte[] imageData, string imageFilePath)
+        public ImagePredictedLabelWithProbability PredictLabelForImage(byte[] imageData, string imageFile)
         {           
-            var imageLabelPredicted = PredictLabelWithProbability(imageFilePath);
+            var imageLabelPredicted = PredictLabelWithProbability(imageFile);
 
             return imageLabelPredicted;
         }
 
-        public PredictionFunction<ImageInputData, ImageNetPrediction> CreatePredictionFunction()
+        public PredictionFunction<ImageInputData, ImageLabelPredictions> CreatePredictionFunction()
         {
             try
             {
@@ -96,7 +102,7 @@ namespace TensorFlowImageClassificationWebAPI.TensorFlowModelScorer
 
                 var model = pipeline.Fit(dataView);
 
-                var predictionFunction = model.MakePredictionFunction<ImageInputData, ImageNetPrediction>(_mlContext);
+                var predictionFunction = model.MakePredictionFunction<ImageInputData, ImageLabelPredictions>(_mlContext);
 
                 return predictionFunction;
 
@@ -107,25 +113,45 @@ namespace TensorFlowImageClassificationWebAPI.TensorFlowModelScorer
             }
         }
 
-        protected ImagePredictedLabelWithProbability PredictLabelWithProbability(string imageFilePath)
+        protected ImagePredictedLabelWithProbability PredictLabelWithProbability(string imageFile)
         {
-            //Read TF model's labels (labels.txt) to classify the image across those labels
-            var labels = ModelHelpers.ReadLabels(this._labelsLocation);
-
-            //Set the specific image data
-            var imageInputData = new ImageInputData { ImagePath = imageFilePath };
-
-            var imageLabelPredictions = this.PredictionFunction.Predict(imageInputData).PredictedLabels;
-
-            //Set a single label as predicted or even none if probabilities were lower than 70%
-            var imageBestLabelPrediction = new ImagePredictedLabelWithProbability()
+            try
             {
-                ImagePath = imageInputData.ImagePath,
-            };
-            (imageBestLabelPrediction.PredictedLabel, imageBestLabelPrediction.Probability) = GetBestLabel(labels, imageLabelPredictions);
+                //Read TF model's labels (labels.txt) to classify the image across those labels
+                var labels = ModelHelpers.ReadLabels(this._labelsLocation);
 
-            return imageBestLabelPrediction;
+                //Set the specific image data
+                var imageInputData = new ImageInputData { ImagePath = imageFile };
+                float[] imageLabelPredictions;
 
+                //Set the critical section if using Singleton for the TFModelScorer object
+                //               
+                lock (_predictionFunction)
+                {
+                    imageLabelPredictions = _predictionFunction.Predict(imageInputData).PredictedLabels;
+                }
+                //
+                // Note that if using Scoped instead of singleton in DI/IoC you can remove the critical section
+                // It depends if you want better performance in single Http calls (using singleton) 
+                // versus better scalability ann global performance if you have many Http requests/threads 
+                // since the critical section is a bottleneck reducing the execution to one thread for that particular call
+                //
+
+                //Set a single label as predicted or even none if probabilities were lower than 70%
+                var imageBestLabelPrediction = new ImagePredictedLabelWithProbability()
+                {
+                    ImagePath = imageInputData.ImagePath,
+                };
+
+                (imageBestLabelPrediction.PredictedLabel, imageBestLabelPrediction.Probability) = GetBestLabel(labels, imageLabelPredictions);
+
+                return imageBestLabelPrediction;
+
+            }
+            catch (Exception e)
+            {
+                throw e;
+            } 
         }
 
         private (string, float) GetBestLabel(string[] labels, float[] probs)

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using TensorFlowImageClassificationWebAPI.ImageDataStructures;
 using TensorFlowImageClassificationWebAPI.Infrastructure;
@@ -19,54 +20,85 @@ namespace TensorFlowImageClassificationWebAPI.Controllers
         //Dependencies
         private readonly IImageFileWriter _imageWriter; 
         private readonly string _imagesTmpFolder;
+
+        private readonly ILogger<ImageClassificationController> _logger;
         private readonly ITFModelScorer _modelScorer;
 
-        public ImageClassificationController(ITFModelScorer modelScorer, IImageFileWriter imageWriter) //When using DI/IoC (IImageFileWriter imageWriter)
+        public ImageClassificationController(ITFModelScorer modelScorer, ILogger<ImageClassificationController> logger, IImageFileWriter imageWriter) //When using DI/IoC (IImageFileWriter imageWriter)
         {
             //Get injected dependencies
             _modelScorer = modelScorer;
+            _logger = logger;
             _imageWriter = imageWriter;
 
             _imagesTmpFolder = ModelHelpers.GetFolderFullPath(@"ImagesTemp");
         }
 
         [HttpPost]
-        //[Route("classifyImage/{approach}")]
-        [Route("classifyImage")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [Route("classifyimage")]
         public async Task<IActionResult> ClassifyImage(IFormFile imageFile)
         {
             if (imageFile.Length == 0)
-                return NoContent();
+                return BadRequest();
 
-            //Save the temp image image into the temp-folder 
-            var fileName = await _imageWriter.UploadImageAsync(imageFile, _imagesTmpFolder);
-            string imageFilePath = Path.Combine(_imagesTmpFolder, fileName);
-            
-            //Convert image stream to byte[] - Image stream still not used in ML.NET 0.7 but through the file
-            ImagePredictedLabelWithProbability imageLabelPrediction = null;
-            var image = new MemoryStream();           
-            await imageFile.CopyToAsync(image);
-            var imageData = image.ToArray();
-            if (!imageData.IsValidImage())
-                return StatusCode(StatusCodes.Status415UnsupportedMediaType);
+            string imageFilePath = "", fileName = "";
+            try
+            {
+                //Save the temp image image into the temp-folder 
+                fileName = await _imageWriter.UploadImageAsync(imageFile, _imagesTmpFolder);
+                imageFilePath = Path.Combine(_imagesTmpFolder, fileName);
 
+                //Convert image stream to byte[] 
+                byte[] imageData = null;
+                //
+                //Image stream still not used in ML.NET 0.7 but only possible through a file
+                //
+                //MemoryStream image = new MemoryStream();           
+                //await imageFile.CopyToAsync(image);
+                //imageData = image.ToArray();
+                //if (!imageData.IsValidImage())
+                //    return StatusCode(StatusCodes.Status415UnsupportedMediaType);
 
-            //Measure execution time
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            
-            //Predict the image's label (The one with highest probability)
-            imageLabelPrediction = _modelScorer.PredictLabelForImage(imageData, imageFilePath);
+                ImagePredictedLabelWithProbability imageLabelPrediction = null;
+                _logger.LogInformation($"Start processing image file { imageFilePath }");
 
-            // the code that you want to measure comes here
-            watch.Stop();
-            var elapsedMs = watch.ElapsedMilliseconds;
-            imageLabelPrediction.PredictionExecutionTime = elapsedMs;
+                //Measure execution time
+                var watch = System.Diagnostics.Stopwatch.StartNew();
 
-            //TODO: Commented as the file is still locked by TensorFlow or ML.NET?
-            //_imageWriter.DeleteImageTempFile(imageFilePath);
+                //Predict the image's label (The one with highest probability)
+                imageLabelPrediction = _modelScorer.PredictLabelForImage(imageData, imageFilePath);
 
-            //return new ObjectResult(result);
-            return Ok(imageLabelPrediction);
+                //Stop measuring time
+                watch.Stop();
+                var elapsedMs = watch.ElapsedMilliseconds;
+                imageLabelPrediction.PredictionExecutionTime = elapsedMs;
+
+                _logger.LogInformation($"Image processed in {elapsedMs} miliseconds");
+
+                //TODO: Commented as the file is still locked by TensorFlow or ML.NET?
+                //_imageWriter.DeleteImageTempFile(imageFilePath);
+
+                //return new ObjectResult(result);
+                return Ok(imageLabelPrediction);
+            }
+            finally
+            {
+                try
+                {
+                    if(imageFilePath != string.Empty)
+                    {
+                        _logger.LogInformation($"Deleting Image {imageFilePath}");
+                        //TODO: Commented as the file is still locked by TensorFlow or ML.NET?
+                        //_imageWriter.DeleteImageTempFile(imageFilePath);
+                    }
+                }
+                catch (Exception)
+                {
+                    _logger.LogInformation("Error deleting image: " + imageFilePath);
+                }
+            }
         }
 
 

@@ -41,10 +41,18 @@ namespace TensorFlowImageClassificationWebAPI
             // Register types (Interface/Class pairs) to use in DI/IoC
             services.AddTransient<IImageFileWriter, ImageFileWriter>();
 
-            // Set TFModelScorer as Singleton so expensive initializations 
-            // like prediction function is done once across Http calls
+            // Set TFModelScorer to be re-used across calls because there are expensive initializations
+            // like when creating the prediciton function.
+            // If set to be used as Singleton is very important to use critical sections in the code
+            // because the 'Predict()' method is not reentrant. 
+            //
             services.AddSingleton<ITFModelScorer, TFModelScorer>();
 
+            // Another choice is to create the TFModelScorer as ServiceLifetime.Scoped or .AddScoped() when adding to services
+            // In this case you don't need a critical section but every Http request will need to create a prediction function
+            // You will benefit only in the cases where you do multiple predictions within the same Http request.
+            //
+            //services.AddScoped<ITFModelScorer, TFModelScorer>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -55,13 +63,21 @@ namespace TensorFlowImageClassificationWebAPI
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseCors(builder =>
+            {
+                builder
+                    .AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            });
+
             //Use this to set path of files outside the wwwroot folder
-            //app.UseStaticFiles(new StaticFileOptions
-            //{
-            //    FileProvider = new PhysicalFileProvider(
-            //        Path.Combine(Directory.GetCurrentDirectory(), "ImagesTemp")),
-            //    RequestPath = "/ImagesTemp"
-            //});
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(
+                    Path.Combine(Directory.GetCurrentDirectory(), "ImagesTemp")),
+                RequestPath = "/ImagesTemp"
+            });
 
             //If using wwwroot/images folder
             //app.UseStaticFiles(); //letting the application know that we need access to wwwroot folder.
