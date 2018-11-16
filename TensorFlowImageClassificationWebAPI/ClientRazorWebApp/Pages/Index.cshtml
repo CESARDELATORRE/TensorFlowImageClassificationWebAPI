@@ -1,0 +1,53 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<br/>
+<br />
+<br />
+
+<form method="post" enctype="multipart/form-data">
+    <input type="file" name="imageFile">
+    <input type="submit" value="Upload File" name="submit">
+</form>
+
+<script src="upload.js"></script>
+
+<div class="col-md-10">
+    <p>Prediction returned</p>
+    <p>TBD in labels...</p>
+
+</div>
+
+<!--
+<form name="ImageUpload" method="post" enctype="multipart/form-data" action="http://localhost:5000/api/ImageClassification/classifyImage">
+    <div>
+        <label for="caption">Image Caption</label>
+        <input name="caption" type="text" />
+    </div>
+    <div>
+        <label for="imageFile">Image File</label>
+        <input name="imageFile" type="file" />
+    </div>
+    <div>
+        <input type="submit" value="Submit" />
+    </div>
+</form>
+
+
+<form method="post" enctype="multipart/form-data" asp-controller="UploadFiles" asp-action="http://localhost:5000/api/ImageClassification/classifyImage">
+    <div class="form-group">
+        <div class="col-md-10">
+            <p>Upload one or more files images using this form:</p>
+            <input type="file" name="files" multiple />
+        </div>
+    </div>
+    <div class="form-group">
+        <div class="col-md-10">
+            <input type="submit" value="Upload" />
+        </div>
+    </div>
+</form>
+-->
