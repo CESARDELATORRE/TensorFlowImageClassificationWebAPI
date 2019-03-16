@@ -50,7 +50,7 @@ namespace TensorFlowImageClassificationWebAPI.TensorFlowModelScorer
             this._labelsLocation = Path.Combine(assetsPath, "labels.txt");
             this._imagesTmpFolder = ModelHelpers.GetFolderFullPath(@"ImagesTemp");
 
-            _mlContext = new MLContext(seed: 1);  //Setting seed so predictions are deterministic
+            _mlContext = new MLContext();  
 
             // Create the prediction function in the constructor, once, as it is an expensive operation
             // Note that, on average, this call takes around 200x longer than one prediction, so you want to cache it
